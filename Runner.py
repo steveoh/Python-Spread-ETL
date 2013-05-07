@@ -36,32 +36,38 @@ def get_list_from(spreadsheet):
     
     return list_of_lists
 
-zip_template = Template("""private static Dictionary<string, List<GridLinkable>> GetZipCodeToGridLookup() 
+zip_template = Template("""private static Dictionary<string, List<GridLinkable>> CacheZipCodes() 
 { 
-    var gridLookup = new List<ZipGridLookup> { 
-        {% for item in list %} new ZipGridLookup({{item[0]}}, "{{item[1]}}", {{item[2]}}){% if not list.last %},{% endif %}
-        {% endfor %}}; 
+    var gridLookup = new List<ZipGridLink> { {% for item in items %}
+        new ZipGridLink({{item[0]}}, "{{item[1]}}", {{item[2]}}){% if not loop.last %},{% endif %}{% endfor %}
+    }; 
+        
     return BuildGridLinkableLookup(gridLookup);
-'}""")
+}""")
 
-places_template = Template("""private static Dictionary<string, List<GridLinkable>> GetPlaceToGridLookup()
+places_template = Template("""\n\nprivate static Dictionary<string, List<GridLinkable>> CachePlaces()
 {
-    var gridLookup = new List<PlaceGridLookup> {
-        {% for item in list %}
-        new PlaceGridLookup("{{item[0]}}", "{{item[1]}}", {{item[2]}})
-        {% if not list.last %}, {% endif %}
-        {% endfor %} };
+    var gridLookup = new List<PlaceGridLink> { {% for item in items %} 
+        new PlaceGridLink("{{item[0]}}", "{{item[1]}}", {{item[2]}}){% if not loop.last %},{% endif %}{% endfor %} 
+    };
     
     return BuildGridLinkableLookup(gridLookup);
 }""")
 
-with open("both.txt", "w") as text_file:
-    text_file.write(zip_template.render(list = get_list_from("ZipCodesInAddressQuadrants")))
-
-print 'updated zip file list.'
+usps_template = Template("""\n\nprivate static Dictionary<string, List<GridLinkable>> CacheDeliveryPoints()
+{
+    var gridLookup = new List<UspsDeliveryPointLink> { {% for item in items %} 
+        new UspsDeliveryPointLink({{item[0]}}, "{{item[1]}}", 0, "{{item[2]}} {{item[3]}}", {{item[6]}}, {{item[7]}}){% if not loop.last %}, {% endif %}{% endfor %} 
+    };
     
-with open("both.txt", "a") as text_file:
-    text_file.write(places_template.render(list = get_list_from("Cities/Placenames/Abbreviations w/Address System")))
+    return BuildGridLinkableLookup(gridLookup);
+}""")
+
+
+with open("both.txt", "w") as text_file:
+    text_file.write(zip_template.render(items = get_list_from("ZipCodesInAddressQuadrants")))
+    text_file.write(places_template.render(items = get_list_from("Cities/Placenames/Abbreviations w/Address System")))
+    text_file.write(usps_template.render(items = get_list_from("USPS Delivery Points")))
 
 print 'updated places list.'
 
